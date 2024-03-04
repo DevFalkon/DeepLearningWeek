@@ -47,3 +47,4 @@ while True:
             sys.exit()
 
     clock.tick(FPS)
+print('test')
