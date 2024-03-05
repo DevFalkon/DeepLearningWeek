@@ -76,14 +76,14 @@ class Boat:
         return False
 
     def move_left(self):
-        if self.pos[0] < len(self.grid)-1:
+        if self.pos[0] > 0:
             self.pos[0] -= 1
             self.render()
             return True
         return False
 
     def move_right(self):
-        if self.pos[0] > 0:
+        if self.pos[0] < len(self.grid)-1:
             self.pos[0] += 1
             self.render()
             return True

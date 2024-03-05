@@ -42,13 +42,14 @@ def take_step(boat, action, Qtable):
         if boat.pos[1] == boat.reset_pos[1]:
             reward = 1
         else:
-            reward = -3
+            reward = -2
 
     return reward
 
 
 learning_rate = 0.7
 gamma = 0.95
+
 
 def train(training_episodes, min_epsilon, max_epsilon, decay_rate, max_steps, Qtable, boat):
     for episode in range(training_episodes):
@@ -68,9 +69,14 @@ def train(training_episodes, min_epsilon, max_epsilon, decay_rate, max_steps, Qt
             new_state = boat.pos
 
             print(state)
+
             state_val = Qtable[state[0]][state[1]].qvals
             Qtable[state[0]][state[1]].qvals[action] = state_val[action] + learning_rate * (
                         reward + gamma * max(Qtable[new_state[0]][new_state[1]].qvals) - state_val[action])
+
+            if action == 4:
+                Qtable[state[0]][state[1]].fish_population -= 100
+
 
             # If done, finish the episode
             if done:
