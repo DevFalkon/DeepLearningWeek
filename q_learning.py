@@ -2,8 +2,6 @@ import time
 import numpy as np
 import random
 
-
-
 population_d = 25
 
 # State space -> the simulation grid
