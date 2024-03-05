@@ -14,6 +14,7 @@ import pygame as pg
 import sys
 import numpy as np
 import random
+import ai_test
 
 
 # Variables for the width and height of the simulation window
