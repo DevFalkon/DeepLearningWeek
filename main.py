@@ -14,7 +14,7 @@ import pygame as pg
 import sys
 import numpy as np
 import random
-import ai_test
+import q_learning
 
 
 # Variables for the width and height of the simulation window
@@ -47,13 +47,16 @@ class GridCell:
         self.environment_val = 0
 
         self.population_history = []
+        self.qvals = [0, 0, 0, 0, 0, 0]
 
 
 # All the properties of the boat
 class Boat:
     def __init__(self, grid):
         # position is the grid coordinates of the boat
-        self.pos = [0, len(grid)-1]
+        self.reset_pos = [0, len(grid)-1]
+
+        self.pos = self.reset_pos
 
         self.fuel_used = 0
         self.grid = grid
@@ -147,6 +150,8 @@ boat = Boat(state_grid)
 boat.render()
 # Reward for Reinforced learning
 reward = 0
+
+Qtable = state_grid
 
 while True:
 

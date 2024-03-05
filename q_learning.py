@@ -2,7 +2,7 @@ import numpy as np
 import random
 
 # Training parameters
-n_training_episodes = 10000
+training_episodes = 10000
 learning_rate = 0.7
 
 # Evaluation parameters
@@ -18,31 +18,45 @@ max_epsilon = 1.0
 min_epsilon = 0.05
 decay_rate = 0.0005
 
-
 # State space -> the simulation grid
 # Action space -> all the possible actions
-
-# Values for Q-table: up -> 0, down -> 1, left -> 2, right -> 3, fish -> 4 and dock -> 5
-def initialize_q_table(state_space, action_space):
-  Qtable = np.zeros((state_space, action_space))
-  return Qtable
-
+# State -> The current position of the boat in the environment
+# Values for action space: up -> 0, down -> 1, left -> 2, right -> 3, fish -> 4 and dock -> 5
 
 def epsilon_greedy_policy(Qtable, state, epsilon):
-  random_int = random.uniform(0,1)
-  if random_int > epsilon:
-    action = np.argmax(Qtable[state])
-  else:
-    action = env.action_space.sample()
-  return action
+    random_int = random.uniform(0, 1)
+    if random_int > epsilon:
+        action = max(Qtable[state[0]][state[1]].qvals)
+    else:
+        action = Qtable[state[0]][state[1]].q_values[random.randint(0,6)]
+    return action
 
 
-def train(n_training_episodes, min_epsilon, max_epsilon, decay_rate, grid, max_steps, Qtable):
-    for episode in trange(n_training_episodes):
+def reset():
+    pass
+
+
+def take_step(boat, action):
+    if action == 0:
+        boat.move_up()
+    elif action == 1:
+        boat.move_down()
+    elif action == 2:
+        boat.move_left()
+    elif action == 3:
+        boat.move_down()
+    elif action == 4:
+        boat.fish()
+    else:
+        boat.dock()
+
+
+def train(training_episodes, min_epsilon, max_epsilon, decay_rate, max_steps, Qtable, boat):
+    for episode in range(training_episodes):
 
         epsilon = min_epsilon + (max_epsilon - min_epsilon) * np.exp(-decay_rate * episode)
         # Reset the environment
-        state = env.reset()
+        state = boat.reset_pos
         step = 0
         done = False
 
