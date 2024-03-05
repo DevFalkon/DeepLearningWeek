@@ -153,6 +153,24 @@ reward = 0
 
 Qtable = state_grid
 
+# Training parameters
+training_episodes = 10000
+
+
+# Evaluation parameters
+n_eval_episodes = 100
+
+# Environment parameters
+max_steps = 99
+eval_seed = []
+
+# Exploration parameters
+max_epsilon = 1.0
+min_epsilon = 0.05
+decay_rate = 0.0005
+
+q_learning.train(training_episodes, min_epsilon, max_epsilon, decay_rate, max_steps, Qtable, boat)
+
 while True:
 
     for event in pg.event.get():

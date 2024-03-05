@@ -1,22 +1,10 @@
+import time
 import numpy as np
 import random
 
-# Training parameters
-training_episodes = 10000
-learning_rate = 0.7
 
-# Evaluation parameters
-n_eval_episodes = 100
 
-# Environment parameters
-max_steps = 99
-gamma = 0.95
-eval_seed = []
-
-# Exploration parameters
-max_epsilon = 1.0
-min_epsilon = 0.05
-decay_rate = 0.0005
+population_d = 25
 
 # State space -> the simulation grid
 # Action space -> all the possible actions
@@ -26,30 +14,43 @@ decay_rate = 0.0005
 def epsilon_greedy_policy(Qtable, state, epsilon):
     random_int = random.uniform(0, 1)
     if random_int > epsilon:
-        action = max(Qtable[state[0]][state[1]].qvals)
+        action = Qtable[state[0]][state[1]].qvals.index(max(Qtable[state[0]][state[1]].qvals))
     else:
-        action = Qtable[state[0]][state[1]].q_values[random.randint(0,6)]
+        action = random.randint(0,5)
     return action
 
 
-def reset():
-    pass
 
-
-def take_step(boat, action):
+def take_step(boat, action, Qtable):
+    reward = 0
     if action == 0:
         boat.move_up()
+        reward = -3
     elif action == 1:
         boat.move_down()
+        reward = -1
     elif action == 2:
         boat.move_left()
+        reward = -2
     elif action == 3:
         boat.move_down()
+        reward = -2
     elif action == 4:
         boat.fish()
+        fish_population = Qtable[boat.pos[0]][boat.pos[1]].fish_population
+        reward = fish_population/population_d
     else:
         boat.dock()
+        if boat.pos[1] == boat.reset_pos[1]:
+            reward = 1
+        else:
+            reward = -3
 
+    return reward
+
+
+learning_rate = 0.7
+gamma = 0.95
 
 def train(training_episodes, min_epsilon, max_epsilon, decay_rate, max_steps, Qtable, boat):
     for episode in range(training_episodes):
@@ -65,10 +66,13 @@ def train(training_episodes, min_epsilon, max_epsilon, decay_rate, max_steps, Qt
 
             action = epsilon_greedy_policy(Qtable, state, epsilon)
 
-            new_state, reward, done, info = env.step(action)
+            reward = take_step(boat, action, Qtable)
+            new_state = boat.pos
 
-            Qtable[state][action] = Qtable[state][action] + learning_rate * (
-                        reward + gamma * np.max(Qtable[new_state]) - Qtable[state][action])
+            print(state)
+            state_val = Qtable[state[0]][state[1]].qvals
+            Qtable[state[0]][state[1]].qvals[action] = state_val[action] + learning_rate * (
+                        reward + gamma * max(Qtable[new_state[0]][new_state[1]].qvals) - state_val[action])
 
             # If done, finish the episode
             if done:
