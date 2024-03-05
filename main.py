@@ -4,6 +4,8 @@ import numpy as np
 
 WIDTH = 700
 HEIGHT = 700
+GRID_WIDTH = WIDTH-200
+GRID_HEIGHT = HEIGHT-100
 FPS = 100
 
 pg.init()
@@ -22,18 +24,20 @@ def render_grid(grid):
     x_pos = 0
     y_pos = 0
 
-    x_increment = WIDTH/len(grid[0])
-    y_increment = HEIGHT/len(grid)
+    x_increment = GRID_WIDTH/len(grid[0])
+    y_increment = GRID_HEIGHT/len(grid)
 
     for row in grid:
-        pg.draw.rect(screen, (255,255,255), rect=(0, y_pos, WIDTH, 1))
+        pg.draw.rect(screen, (255,255,255), rect=(0, y_pos, GRID_WIDTH, 1))
         y_pos += y_increment
+    pg.draw.rect(screen, (255, 255, 255), rect=(0, y_pos, GRID_WIDTH, 1))
 
     for column in grid[0]:
-        pg.draw.rect((screen), (255,255,255), (x_pos, 0, 1, HEIGHT))
+        pg.draw.rect((screen), (255,255,255), (x_pos, 0, 1, GRID_HEIGHT))
         x_pos += x_increment
+    pg.draw.rect((screen), (255, 255, 255), (x_pos, 0, 1, GRID_HEIGHT))
 
-    pg.display.update()
+    pg.display.update(pg.Rect(0, 0, GRID_WIDTH+1, GRID_HEIGHT+1))
 
 
 grid = create_grid(50, 50)
@@ -47,4 +51,3 @@ while True:
             sys.exit()
 
     clock.tick(FPS)
-print('test')
