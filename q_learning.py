@@ -18,21 +18,32 @@ def epsilon_greedy_policy(Qtable, state, epsilon):
     return action
 
 
-
 def take_step(boat, action, Qtable):
     reward = 0
     if action == 0:
-        boat.move_up()
-        reward = -3
+        possible = boat.move_up()
+        if possible:
+            reward = -3
+        else:
+            reward -= 100
     elif action == 1:
-        boat.move_down()
-        reward = -1
+        possible = boat.move_down()
+        if possible:
+            reward = -3
+        else:
+            reward -= 100
     elif action == 2:
-        boat.move_left()
-        reward = -2
+        possible = boat.move_left()
+        if possible:
+            reward = -3
+        else:
+            reward -= 100
     elif action == 3:
-        boat.move_down()
-        reward = -2
+        possible = boat.move_right()
+        if possible:
+            reward = -3
+        else:
+            reward -= 100
     elif action == 4:
         boat.fish()
         fish_population = Qtable[boat.pos[0]][boat.pos[1]].fish_population
@@ -42,7 +53,7 @@ def take_step(boat, action, Qtable):
         if boat.pos[1] == boat.reset_pos[1]:
             reward = 1
         else:
-            reward = -2
+            reward = -3
 
     return reward
 
