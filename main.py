@@ -52,10 +52,7 @@ class GridCell:
 class Boat:
     def __init__(self, grid):
         # position is the grid coordinates of the boat
-        self.pos = [0,0]
-
-        self.star_pos = (0,0)
-        self.end_pos = (0,0)
+        self.pos = [0, len(grid)-1]
 
         self.fuel_used = 0
         self.grid = grid
@@ -93,7 +90,7 @@ class Boat:
         self.grid[self.pos[0]][self.pos[1]].fish_population -= decline
 
     def dock(self):
-        if self.pos == self.end_pos:
+        if self.pos[1] == len(self.grid[0])-1:
             return True
         return False
 
@@ -143,14 +140,14 @@ def render_grid(grid):
 
 no_rows = 25
 no_cols = 25
-grid_state = create_grid(no_rows, no_cols)
-render_grid(grid_state)
-
+state_grid = create_grid(no_rows, no_cols)
+render_grid(state_grid)
+boat = Boat(state_grid)
+boat.render()
 # Reward for Reinforced learning
 reward = 0
 
 while True:
-    boat = Boat(grid_state)
 
     for event in pg.event.get():
         if event.type == pg.QUIT:
