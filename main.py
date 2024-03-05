@@ -3,6 +3,10 @@ This file contains the code for the simulation part of the project
 
 The project used pygame for graphics
 install using: pip install pygame
+
+Features of the simulation:
+1. Map the best fishing path for each day
+2. Show the graph of reward vs path per iteration
 """
 
 import pygame as pg
@@ -38,6 +42,8 @@ class GridCell:
     def __init__(self):
         self.fish_population = 0
         self.environment_val = 0
+
+        self.population_history = []
 
 
 # All the properties of the boat
@@ -91,9 +97,13 @@ def render_grid(grid):
     pg.display.update(pg.Rect(0, 0, GRID_WIDTH+1, GRID_HEIGHT+1))
 
 
-grid_state = create_grid(50, 50)
+no_rows = 25
+no_cols = 25
+grid_state = create_grid(no_rows, no_cols)
 render_grid(grid_state)
-print(grid_state)
+
+# Reward for Reinforced learning
+reward = 0
 
 while True:
     for event in pg.event.get():
