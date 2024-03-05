@@ -48,25 +48,48 @@ class GridCell:
 
 # All the properties of the boat
 class Boat:
-    def __init__(self):
+    def __init__(self, grid):
         # position is the grid coordinates of the boat
         self.pos = (0,0)
+
+        self.star_pos = (0,0)
+        self.end_pos = (0,0)
+
         self.fuel_used = 0
+        self.grid = grid
 
     def move_up(self):
-        pass
+        if self.pos[1] > 0:
+            self.pos[1] -= 1
+            return True
+        return False
 
     def move_down(self):
-        pass
+        if self.pos[1] < len(self.grid)-1:
+            self.pos[1] += 1
+            return True
+        return False
 
     def move_left(self):
-        pass
+        if self.pos[0] < len(self.grid)-1:
+            self.pos[0] -= 1
+            return True
+        return False
 
     def move_right(self):
-        pass
+        if self.pos[0] > 0:
+            self.pos[0] += 1
+            return True
+        return False
 
     def fish(self):
-        pass
+        decline = 10
+        self.grid[self.pos[0]][self.pos[1]].fish_population -= decline
+
+    def dock(self):
+        if self.pos == self.end_pos:
+            return True
+        return False
 
 
 # Creating an empty 2-D array
