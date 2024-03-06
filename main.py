@@ -8,11 +8,9 @@ Features of the simulation:
 1. Map the best fishing path for each day
 2. Show the graph of reward vs path per iteration
 """
-import random
 
 import pygame as pg
 import sys
-import numpy as np
 import random
 import q_learning
 
@@ -43,20 +41,24 @@ clock = pg.time.Clock()
 # Each cell in a grid will have these attributes
 class GridCell:
     def __init__(self):
+        self.qvals = [0, 0, 0, 0, 0, 0]
+
+
+class OceanEnvironment:
+    def __init__(self):
         self.fish_population = random.randint(0, 255)
         self.environment_val = 0
 
         self.population_history = []
-        self.qvals = [0, 0, 0, 0, 0, 0]
 
 
 # All the properties of the boat
 class Boat:
     def __init__(self, grid):
         # position is the grid coordinates of the boat
-        self.reset_pos = [0, len(grid)-1]
+        self.reset_pos = (0, len(grid)-1)
 
-        self.pos = self.reset_pos
+        self.pos = list(self.reset_pos)
 
         self.fuel_used = 0
         self.grid = grid
@@ -108,8 +110,9 @@ class Boat:
 
 # Creating an empty 2-D array
 def create_grid(rows, columns):
-    ls = [[GridCell() for j in range(columns)] for i in range(rows)]
-    return ls
+    qval_grid = [[GridCell() for j in range(columns)] for i in range(rows)]
+    environment_grid = [[OceanEnvironment() for j in range(columns)] for i in range(rows)]
+    return qval_grid, environment_grid
 
 
 # Rendering the grid on screen
@@ -125,7 +128,10 @@ def render_grid(grid):
     for i in range(no_rows):
         for j in range(no_cols):
             rect = cell_width*j, cell_height*i, cell_width, cell_height
-            pg.draw.rect(screen, (0, 0, abs(grid[i][j].fish_population-255)), rect)
+            if abs(grid[i][j].fish_population-255) > 255:
+                pg.draw.rect(screen, (0, 0, 150), rect)
+            else:
+                pg.draw.rect(screen, (0, 0, abs(grid[i][j].fish_population-255)), rect)
 
     for row in grid:
         pg.draw.rect(screen, darker_blue, rect=(0, y_pos, GRID_WIDTH, 1))
@@ -135,7 +141,6 @@ def render_grid(grid):
         pg.draw.rect(screen, darker_blue, (x_pos, 0, 1, GRID_HEIGHT))
         x_pos += cell_width
 
-
     pg.draw.rect(screen, darker_blue, rect=(0, y_pos, GRID_WIDTH, 1))
     pg.draw.rect(screen, darker_blue, (x_pos, 0, 1, GRID_HEIGHT))
 
@@ -144,14 +149,12 @@ def render_grid(grid):
 
 no_rows = 25
 no_cols = 25
-state_grid = create_grid(no_rows, no_cols)
-render_grid(state_grid)
-boat = Boat(state_grid)
+Qtable, environment_grid = create_grid(no_rows, no_cols)
+render_grid(environment_grid)
+boat = Boat(environment_grid)
 boat.render()
 # Reward for Reinforced learning
 reward = 0
-
-Qtable = state_grid
 
 # Training parameters
 training_episodes = 10000
@@ -169,14 +172,45 @@ max_epsilon = 1.0
 min_epsilon = 0.05
 decay_rate = 0.0005
 
-final_table = q_learning.train(training_episodes, min_epsilon, max_epsilon, decay_rate, max_steps, Qtable, boat)
-for row in final_table:
+final_table = q_learning.train(training_episodes, min_epsilon, max_epsilon, decay_rate, max_steps, Qtable, tuple(environment_grid), boat, screen)
+for row in Qtable:
     for cell in row:
-        print(f"{cell.qvals}", end=" ")
+        for i in cell.qvals:
+            print(round(i, 2), end=" ")
+        print("", end=": ")
     print()
 
 
+def move_boat(boat, action):
+    if action == 0:
+        boat.move_up()
+    elif action == 1:
+        boat.move_down()
+    elif action == 2:
+        boat.move_left()
+    elif action == 3:
+        boat.move_right()
+    elif action == 4:
+        boat.fish()
+    else:
+        return False
+    return True
+
+
 while True:
+    render_grid(environment_grid)
+    boat = Boat(environment_grid)
+
+    dock = False
+    """while not dock:
+        action = Qtable[boat.pos[0]][boat.pos[1]].qvals.index(max(Qtable[boat.pos[0]][boat.pos[1]].qvals))
+        print(action)
+        print(Qtable[boat.pos[0]][boat.pos[1]].qvals)
+        print(max(Qtable[boat.pos[0]][boat.pos[1]].qvals))
+        if not move_boat(boat, action):
+            dock = True"""
+
+    pg.display.update()
 
     for event in pg.event.get():
         if event.type == pg.QUIT:
