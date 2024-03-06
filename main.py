@@ -8,7 +8,7 @@ Features of the simulation:
 1. Map the best fishing path for each day
 2. Show the graph of reward vs path per iteration
 """
-
+import json
 import pygame as pg
 import sys
 import random
@@ -188,39 +188,6 @@ def render_grid(grid, Qtable):
     pg.display.update(pg.Rect(0, 0, GRID_WIDTH+1, GRID_HEIGHT+1))
 
 
-no_rows = 25
-no_cols = 25
-
-mode = 0
-
-Qtable, environment_grid = create_grid(no_rows, no_cols, mode)
-render_grid(environment_grid, Qtable)
-boat = Boat(environment_grid)
-boat.render()
-# Reward for Reinforced learning
-reward = 0
-
-# Training parameters
-training_episodes = 10000
-
-
-# Evaluation parameters
-n_eval_episodes = 100
-
-# Environment parameters
-max_steps = 99
-eval_seed = []
-
-# Exploration parameters
-
-decay_rate = 0.0005
-
-avg_population = avg_fish_population(environment_grid)
-thread = threading.Thread(target=q_learning.train,
-                          args=(training_episodes, decay_rate, max_steps, Qtable, tuple(environment_grid), boat, screen, avg_population))
-thread.start()
-
-
 def move_boat(boat, action):
     if action == 0:
         boat.move_up()
@@ -244,19 +211,80 @@ def printQtable(Qtable):
         print()
 
 
+def save_table(Qtable, file_name):
+    saved_table = []
+    for row in Qtable:
+        for cell in row:
+            saved_table.append(cell.qvals)
+    with open(file_name, 'w') as file:
+        json.dump(saved_table, file)
+
+
+def save_env(env_grid, file_name):
+    saved_table = []
+    for row in Qtable:
+        for cell in row:
+            saved_table.append(cell.qvals)
+    with open(file_name, 'w') as file:
+        json.dump(saved_table, file)
+
+
+def load_table(Qtable, file_name):
+    with open(file_name, 'r') as file:
+        qv = json.load(file)
+
+    ind = 0
+    for row in Qtable:
+        for cell in row:
+            cell.qvals = qv[ind]
+            ind += 1
+
+
+no_rows = 25
+no_cols = 25
+
+mode = 1
+
+Qtable, environment_grid = create_grid(no_rows, no_cols, mode)
+#load_table(Qtable, 'save.json')
+render_grid(environment_grid, Qtable)
+boat = Boat(environment_grid)
+boat.render()
+# Reward for Reinforced learning
+reward = 0
+
+# Training parameters
+training_episodes = 1000
+
+
+# Evaluation parameters
+n_eval_episodes = 100
+
+# Environment parameters
+max_steps = 99
+eval_seed = []
+
+# Exploration parameters
+
+decay_rate = 0.0005
+
+
+def train_model(boat_actor):
+    avg_population = avg_fish_population(environment_grid)
+    thread = threading.Thread(target=q_learning.train,
+                              args=(training_episodes, decay_rate, max_steps, Qtable, tuple(environment_grid), boat_actor, screen, avg_population))
+    thread.start()
+    return thread
+
+
+saved = False
 while True:
     render_grid(environment_grid, Qtable)
 
-    if not thread.is_alive():
-        print("training over")
+    if not thread.is_alive() and not saved:
         boat.pos = list(boat.reset_pos)
-        print(boat.pos)
-        """dock = False
-        while not dock:
-            action = Qtable[boat.pos[0]][boat.pos[1]].qvals.index(max(Qtable[boat.pos[0]][boat.pos[1]].qvals))
-            print(action)
-            if not move_boat(boat, action):
-                dock = True"""
+        save_table(Qtable, 'save.json')
+        saved = True
 
     pg.display.update()
 
