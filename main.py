@@ -75,10 +75,12 @@ class OceanEnvironment:
         diag_dist = pow(pow(dist_from_shore_x, 2) + pow(dist_from_shore_y, 2), 0.5)
         max_dist = pow(pow(self.max_rows, 2) + pow(self.max_cols, 2), 0.5)
         fish_pop = int((255 / max_dist) * diag_dist)
+        if fish_pop == 0:
+            return 1
         return fish_pop
 
     def random_fish_generator(self):
-        return np.random.randint(1, 100)
+        return np.random.randint(5, 100)
 
 
 # All the properties of the boat
@@ -229,28 +231,30 @@ def load_table(Qtable, file_name):
 # Logistic growth function
 def logistic_growth(initial_population):
     max_population = 255  # Carrying capacity -> the max limit of fish per cell
-    r_annual = 10  # Annual intrinsic rate of increase
+    r_annual = 0.1  # Annual intrinsic rate of increase
 
     # Convert annual growth rate to monthly growth rate
-    monthly_growth = (1 + r_annual) ** (1 / 12) - 1
+    monthly_growth = ((1 + r_annual) ** (1 / 12)) - 1
 
     population = max_population / (
-                1 + ((monthly_growth - initial_population) / initial_population) * np.exp(-monthly_growth))
-    print(population)
+                3.1+((monthly_growth - initial_population) / initial_population) * np.exp(-monthly_growth*2))
     return population
 
 
 def update_population(env_grid):
     for row in env_grid:
         for cell in row:
-            cell.fish_population = logistic_growth(cell.fish_population)
+            if cell.fish_population>0:
+                cell.fish_population = logistic_growth(cell.fish_population)
+                print(cell.fish_population)
+            cell.color = 0
     return env_grid
 
 
 no_rows = 25
 no_cols = 25
 
-mode = 0
+mode = 1
 
 Qtable = create_qtable(no_rows, no_cols)
 environment_grid = create_env(no_rows, no_cols, mode)
@@ -331,18 +335,18 @@ boat_ls = []
 
 no_people = 10
 no_assigned = 0
+cnt = 0
 running = True
 confirm_press = False
 boats_confirmed = False
-cnt = 0
+
+next_button = rect.Rect(screen, GRID_WIDTH + 20, HEIGHT - 70, WIDTH - GRID_WIDTH - 40, 50)
+add_boat = rect.Rect(screen, GRID_WIDTH + 20, 295, WIDTH - GRID_WIDTH - 40, 50)
+confirm_button = rect.Rect(screen, GRID_WIDTH + 20, HEIGHT - 140, WIDTH - GRID_WIDTH - 40, 50)
 
 while True:
     render_grid(environment_grid)
     mouse_pos = pg.mouse.get_pos()
-
-    next_button = rect.Rect(screen, GRID_WIDTH + 20, HEIGHT - 70, WIDTH - GRID_WIDTH - 40, 50)
-    add_boat = rect.Rect(screen, GRID_WIDTH + 20, 295, WIDTH - GRID_WIDTH - 40, 50)
-    confirm_button = rect.Rect(screen, GRID_WIDTH + 20, HEIGHT - 140, WIDTH - GRID_WIDTH - 40, 50)
 
     if color_picker.rect_dist(mouse_pos):
         p_color = (mouse_pos[0] - GRID_WIDTH - 20, mouse_pos[1] - 20, 0)
@@ -386,6 +390,10 @@ while True:
             update_environment(Qtable, environment_grid, boat_ls[no_assigned - 1])
             Qtable = create_qtable(no_rows, no_cols)
             running = False
+    if not running and no_assigned>= no_people and cnt>0:
+        if next_button.rect_dist(mouse_pos) and pg.mouse.get_pressed()[0]:
+            no_assigned = 0
+            update_population(environment_grid)
 
     pg.display.update()
 
