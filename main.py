@@ -9,12 +9,15 @@ Features of the simulation:
 2. Show the graph of reward vs path per iteration
 """
 import json
+import time
+
 import pygame as pg
 import sys
 import random
 import q_learning
 import threading
 import numpy as np
+import rect
 
 np.random.seed(42)  # For reproducible results
 
@@ -75,11 +78,11 @@ class OceanEnvironment:
 
         diag_dist = pow(pow(dist_from_shore_x,2)+pow(dist_from_shore_y,2), 0.5)
         max_dist = pow(pow(self.max_rows,2)+pow(self.max_cols,2), 0.5)
-        fish_pop = int((255/max_dist)*diag_dist)
+        fish_pop = int((1000/max_dist)*diag_dist)
         return fish_pop
 
     def random_fish_generator(self):
-        return np.random.randint(1000, 255000)
+        return np.random.randint(1, 20)
 
 
 # All the properties of the boat
@@ -149,7 +152,6 @@ def avg_fish_population(envGrid):
     for row in envGrid:
         for cell in row:
             pop += cell.fish_population
-
     return int(pop/n)
 
 
@@ -230,31 +232,36 @@ def load_table(Qtable, file_name):
 
 
 # Logistic growth function
-def logistic_growth(initial_population, month):
-    max_population = 1000000  # Carrying capacity -> the max limit of fish per cell
-    r_annual = 0.1  # Annual intrinsic rate of increase
+def logistic_growth(initial_population):
+    max_population = 255  # Carrying capacity -> the max limit of fish per cell
+    r_annual = 10  # Annual intrinsic rate of increase
 
     # Convert annual growth rate to monthly growth rate
     monthly_growth = (1 + r_annual) ** (1 / 12) - 1
 
-    return max_population / (1 + ((monthly_growth - initial_population) / initial_population) * np.exp(-monthly_growth * month))
+    population = max_population / (1 + ((monthly_growth - initial_population) / initial_population) * np.exp(-monthly_growth))
+    print(population)
+    return population
 
 
 def update_population(env_grid):
-    pass
+    for row in env_grid:
+        for cell in row:
+            cell.fish_population = logistic_growth(cell.fish_population)
+    return env_grid
 
 
 no_rows = 25
 no_cols = 25
 
-mode = 0
+mode = 1
 
 Qtable = create_qtable(no_rows, no_cols)
 environment_grid = create_env(no_rows, no_cols, mode)
 #load_table(Qtable, 'save.json')
 
 # Training parameters
-training_episodes = 150
+training_episodes = 200
 
 # Environment parameters
 max_steps = 110
@@ -272,11 +279,9 @@ def train_model(boat_actor, env_grid):
     return thread
 
 
-def update_environment(Qtable, env_grid):
+def update_environment(Qtable, env_grid, color):
     sm_qvals = 0
     n = 0
-
-    rand_color = (random.randint(0,255), random.randint(0,255), 0)
     for row in Qtable:
         for cell in row:
             qv = cell.qvals
@@ -294,29 +299,98 @@ def update_environment(Qtable, env_grid):
             qt_cell = Qtable[row_no][cell_no].qvals
             ind = qt_cell.index(max(qt_cell))
             if ind == 4 and qt_cell[ind] > avg and env_grid[row_no][cell_no].color == 0:
-                cell.fish_population -= 100
-                cell.color = rand_color
+                cell.fish_population = 10
+                cell.color = color
                 cnt += 1
             if cnt > 9:
                 return
 
 
 saved = False
+
+
+def render_gradient(top_x, top_y):
+    for row in range(255):
+        for col in range(255):
+            pg.draw.rect(screen, (col, row, 0), (top_x+col, top_y+row, 1,1))
+
+
+def render_boat_color(boat_ls):
+    top_x, top_y = GRID_WIDTH+20, 365
+    for ind, boat_color in enumerate(boat_ls):
+        pg.draw.rect(screen, boat_color, (top_x, top_y, 25, 25))
+        top_y += 35
+        if ind == 4:
+            top_x += 150
+            top_y = 365
+
+color_picker = rect.Rect(screen, GRID_WIDTH + 20, 20, 255, 255)
+render_gradient(GRID_WIDTH + 20, 20)
+
+p_color_final = (100, 100, 100)
+final_color = False
+boat_ls = []
+
 no_people = 10
 no_assigned = 0
-running = False
+running = True
+confirm_press = False
+boats_confirmed = False
+cnt = 0
 
 while True:
     render_grid(environment_grid)
+    mouse_pos = pg.mouse.get_pos()
+
+    next_button = rect.Rect(screen, GRID_WIDTH+20, HEIGHT-70, WIDTH-GRID_WIDTH-40, 50)
+    add_boat = rect.Rect(screen, GRID_WIDTH+20, 295, WIDTH-GRID_WIDTH-40, 50)
+    confirm_button = rect.Rect(screen, GRID_WIDTH+20, HEIGHT-140, WIDTH-GRID_WIDTH-40, 50)
+
+    if color_picker.rect_dist(mouse_pos):
+        p_color = (mouse_pos[0]-GRID_WIDTH-20, mouse_pos[1]-20, 0)
+        if pg.mouse.get_pressed()[0]:
+            p_color_final = p_color
+            final_color = True
+    else:
+        p_color = (100, 100, 100)
+
+    if final_color:
+        p_color = p_color_final
+        if add_boat.rect_dist(mouse_pos) and pg.mouse.get_pressed()[0] and len(boat_ls)<10 and not boats_confirmed:
+            boat_ls.append(p_color)
+            final_color = False
+
+    if len(boat_ls) > 0:
+        render_boat_color(boat_ls)
+    current_color = rect.Rect(screen, GRID_WIDTH + 295, 20, 85, 85, p_color)
+
+    if len(boat_ls) > 0:
+        if confirm_button.rect_dist(mouse_pos) and pg.mouse.get_pressed()[0]:
+            if not confirm_press:
+                running = False
+                no_people = len(boat_ls)
+                if no_people == no_assigned:
+                    pass
+                else:
+                    no_assigned = 0
+                cnt += 1
+                confirm_press = True
+                boats_confirmed = True
+        else:
+            confirm_press = False
+
 
     if not running and no_assigned<no_people:
+        print("training")
+        print(no_assigned)
         thread = train_model(Boat(Qtable), environment_grid)
         running = True
         no_assigned += 1
-    if running and not thread.is_alive():
-        update_environment(Qtable, environment_grid)
-        Qtable = create_qtable(no_rows, no_cols)
-        running = False
+    if cnt > 0:
+        if running and not thread.is_alive():
+            update_environment(Qtable, environment_grid, boat_ls[no_assigned-1])
+            Qtable = create_qtable(no_rows, no_cols)
+            running = False
 
     pg.display.update()
 

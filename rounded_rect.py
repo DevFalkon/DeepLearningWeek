@@ -1,6 +1,7 @@
 import pygame as pg
-from .circle import Circle
-from .rect import Rect
+from circle import Circle
+from rect import Rect
+
 
 class RoundedRect:
     def __init__(self, screen, top_x, top_y, width, height, radius, color, bg_color) -> None:
