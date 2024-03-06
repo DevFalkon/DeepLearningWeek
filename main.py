@@ -169,7 +169,12 @@ max_epsilon = 1.0
 min_epsilon = 0.05
 decay_rate = 0.0005
 
-q_learning.train(training_episodes, min_epsilon, max_epsilon, decay_rate, max_steps, Qtable, boat)
+final_table = q_learning.train(training_episodes, min_epsilon, max_epsilon, decay_rate, max_steps, Qtable, boat)
+for row in final_table:
+    for cell in row:
+        print(f"{cell.qvals}", end=" ")
+    print()
+
 
 while True:
 

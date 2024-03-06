@@ -19,43 +19,34 @@ def epsilon_greedy_policy(Qtable, state, epsilon):
 
 
 def take_step(boat, action, Qtable):
-    reward = 0
     if action == 0:
-        possible = boat.move_up()
-        if possible:
-            reward = -3
-        else:
-            reward -= 100
+        if boat.move_up():
+            return -3
+        return -100
     elif action == 1:
-        possible = boat.move_down()
-        if possible:
-            reward = -3
-        else:
-            reward -= 100
+        if boat.move_down():
+            return -3
+        return -100
     elif action == 2:
-        possible = boat.move_left()
-        if possible:
-            reward = -3
-        else:
-            reward -= 100
+        if boat.move_left():
+            return -3
+        return -100
     elif action == 3:
-        possible = boat.move_right()
-        if possible:
-            reward = -3
-        else:
-            reward -= 100
+        if boat.move_right():
+            return -3
+        return -100
     elif action == 4:
         boat.fish()
         fish_population = Qtable[boat.pos[0]][boat.pos[1]].fish_population
-        reward = fish_population/population_d
+        return fish_population/population_d
     else:
         boat.dock()
-        if boat.pos[1] == boat.reset_pos[1]:
-            reward = 1
+        if boat.pos == list(boat.reset_pos):
+            return -100
+        elif boat.pos[1] == boat.reset_pos[1]:
+            return 1
         else:
-            reward = -3
-
-    return reward
+            return -3
 
 
 learning_rate = 0.7
@@ -68,8 +59,6 @@ def train(training_episodes, min_epsilon, max_epsilon, decay_rate, max_steps, Qt
         epsilon = min_epsilon + (max_epsilon - min_epsilon) * np.exp(-decay_rate * episode)
         # Reset the environment
         state = boat.reset_pos
-        step = 0
-        done = False
 
         # repeat
         for step in range(max_steps):
@@ -90,7 +79,7 @@ def train(training_episodes, min_epsilon, max_epsilon, decay_rate, max_steps, Qt
 
 
             # If done, finish the episode
-            if done:
+            if action == 5:
                 break
 
             # Our state is the new state
