@@ -3,7 +3,7 @@ import pygame as pg
 import numpy as np
 import random
 
-population_d = 0.01
+population_d = 70
 
 # State space -> the simulation grid
 # Action space -> all the possible actions
@@ -20,7 +20,7 @@ def epsilon_greedy_policy(Qtable, state, epsilon):
     return action
 
 
-def take_step(boat, action, environment_grid):
+def take_step(boat, action, environment_grid, avg_population):
     if action == 0:
         if boat.move_up():
             return -5
@@ -39,6 +39,8 @@ def take_step(boat, action, environment_grid):
         return -100
     elif action == 4:
         fish_population = environment_grid[boat.pos[1]][boat.pos[0]].fish_population
+        if fish_population < avg_population:
+            return -1*fish_population/population_d
         return fish_population/population_d
     else:
         if boat.dock():
@@ -51,52 +53,10 @@ learning_rate = 0.7
 gamma = 0.95
 
 
-def render_grid(grid, screen):
-    WIDTH = 700
-    HEIGHT = 700
-
-    # Variable for the width and the height of the simulation inside the main window
-    # Must be <= HEIGHT and WIDTH
-    GRID_WIDTH = WIDTH - 200
-    GRID_HEIGHT = HEIGHT - 100
-    white = (255, 255, 255)
-    sea_blue = (50, 152, 168)
-    darker_blue = (50, 76, 168)
-    x_pos = 0
-    y_pos = 0
-
-    no_rows = len(grid)
-    no_cols = len(grid[0])
-    cell_width = GRID_WIDTH/no_cols
-    cell_height = GRID_HEIGHT/no_rows
-
-    for i in range(no_rows):
-        for j in range(no_cols):
-            rect = cell_width*j, cell_height*i, cell_width, cell_height
-            if abs(grid[i][j].fish_population-255) > 255:
-                pg.draw.rect(screen, (0, 0, 150), rect)
-            else:
-                pg.draw.rect(screen, (0, 0, abs(grid[i][j].fish_population-255)), rect)
-
-    for row in grid:
-        pg.draw.rect(screen, darker_blue, rect=(0, y_pos, GRID_WIDTH, 1))
-        y_pos += cell_height
-
-    for column in grid[0]:
-        pg.draw.rect(screen, darker_blue, (x_pos, 0, 1, GRID_HEIGHT))
-        x_pos += cell_width
-
-
-    pg.draw.rect(screen, darker_blue, rect= (0, y_pos, GRID_WIDTH, 1))
-    pg.draw.rect(screen, darker_blue, (x_pos, 0, 1, GRID_HEIGHT))
-
-    pg.display.update(pg.Rect(0, 0, GRID_WIDTH+1, GRID_HEIGHT+1))
-
-
 import copy
 
 
-def train(training_episodes, decay_rate, max_steps, Qtable, environment_grid, boat, screen):
+def train(training_episodes, decay_rate, max_steps, Qtable, environment_grid, boat, screen, avg_population):
 
     max_epsilon = 1.0
     min_epsilon = 0.05
@@ -108,15 +68,13 @@ def train(training_episodes, decay_rate, max_steps, Qtable, environment_grid, bo
         state = list(boat.reset_pos)
         copy_env_grid = copy.deepcopy(list(environment_grid))
         boat.pos = state
-        #render_grid(copy_env_grid, screen)
-        #boat.render()
 
         # repeat
         for step in range(max_steps):
 
             action = epsilon_greedy_policy(Qtable, state, epsilon)
 
-            reward = take_step(boat, action, copy_env_grid)
+            reward = take_step(boat, action, copy_env_grid, avg_population)
             new_state = boat.pos
 
             state_val = Qtable[state[1]][state[0]].qvals

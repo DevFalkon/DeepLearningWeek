@@ -17,8 +17,8 @@ import threading
 
 
 # Variables for the width and height of the simulation window
-WIDTH = 700
-HEIGHT = 700
+WIDTH = 800
+HEIGHT = 800
 
 # Variable for the width and the height of the simulation inside the main window
 # Must be <= HEIGHT and WIDTH
@@ -46,14 +46,17 @@ class GridCell:
 
 
 class OceanEnvironment:
-    def __init__(self, row, col, no_row, no_col):
+    def __init__(self, row, col, no_row, no_col, mode):
         self.current_row = row
         self.current_col = col
 
-        self.max_rows = no_row
-        self.max_cols = no_col
+        self.max_rows = no_row-1
+        self.max_cols = no_col-1
 
-        self.fish_population = self.fish_pop_generator()
+        if mode == 0:
+            self.fish_population = self.fish_pop_generator()
+        else:
+            self.fish_population = self.random_pop_generator()
         self.environment_val = 0
 
         self.population_history = []
@@ -63,15 +66,19 @@ class OceanEnvironment:
         dist_from_shore_x = abs(self.max_cols-self.current_col)
 
         diag_dist = pow(pow(dist_from_shore_x,2)+pow(dist_from_shore_y,2), 0.5)
-        fish_pop = int((255/self.max_rows*pow(2,0.5))*diag_dist)
+        max_dist = pow(pow(self.max_rows,2)+pow(self.max_cols,2), 0.5)
+        fish_pop = int((255/max_dist)*diag_dist)
         return fish_pop
+
+    def random_pop_generator(self):
+        return random.randint(0,255)
 
 
 # All the properties of the boat
 class Boat:
     def __init__(self, grid):
         # position is the grid coordinates of the boat
-        self.reset_pos = (0, len(grid)-1)
+        self.reset_pos = (len(grid)//2, len(grid)-1)
 
         self.pos = list(self.reset_pos)
 
@@ -125,15 +132,28 @@ class Boat:
         pg.display.update(pg.Rect(rect))
 
 
-# Creating an empty 2-D array
-def create_grid(rows, columns):
+# Creating 2-D array
+def create_grid(rows, columns, mode):
     qval_grid = [[GridCell() for j in range(columns)] for i in range(rows)]
-    environment_grid = [[OceanEnvironment(i, j, rows, columns) for j in range(columns)] for i in range(rows)]
+    environment_grid = [[OceanEnvironment(i, j, rows, columns, mode) for j in range(columns)] for i in range(rows)]
     return qval_grid, environment_grid
 
 
+def avg_fish_population(envGrid):
+    n = len(envGrid)*len(envGrid[0])
+    pop = 0
+    for row in envGrid:
+        for cell in row:
+            pop += cell.fish_population
+
+    return int(pop/n)
+
+
+pg.font.init()
+my_font = pg.font.SysFont('Comic Sans MS', 9)
+
 # Rendering the grid on screen
-def render_grid(grid):
+def render_grid(grid, Qtable):
     x_pos = 0
     y_pos = 0
 
@@ -145,10 +165,14 @@ def render_grid(grid):
     for i in range(no_rows):
         for j in range(no_cols):
             rect = cell_width*j, cell_height*i, cell_width, cell_height
-            if abs(grid[i][j].fish_population-255) > 255:
-                pg.draw.rect(screen, (0, 0, 150), rect)
-            else:
-                pg.draw.rect(screen, (0, 0, abs(grid[i][j].fish_population-255)), rect)
+            pg.draw.rect(screen, (0, 0, abs(grid[i][j].fish_population-255)), rect)
+
+            qv = Qtable[i][j].qvals
+            mx = max(qv)
+            ind = qv.index(mx)
+            text_surface = my_font.render(f"{round(mx, 2)}, {ind}", True, (255, 255, 255))
+
+            screen.blit(text_surface, (cell_width*j,cell_height*i))
 
     for row in grid:
         pg.draw.rect(screen, darker_blue, rect=(0, y_pos, GRID_WIDTH, 1))
@@ -166,8 +190,11 @@ def render_grid(grid):
 
 no_rows = 25
 no_cols = 25
-Qtable, environment_grid = create_grid(no_rows, no_cols)
-render_grid(environment_grid)
+
+mode = 0
+
+Qtable, environment_grid = create_grid(no_rows, no_cols, mode)
+render_grid(environment_grid, Qtable)
 boat = Boat(environment_grid)
 boat.render()
 # Reward for Reinforced learning
@@ -188,8 +215,9 @@ eval_seed = []
 
 decay_rate = 0.0005
 
+avg_population = avg_fish_population(environment_grid)
 thread = threading.Thread(target=q_learning.train,
-                          args=(training_episodes, decay_rate, max_steps, Qtable, tuple(environment_grid), boat, screen))
+                          args=(training_episodes, decay_rate, max_steps, Qtable, tuple(environment_grid), boat, screen, avg_population))
 thread.start()
 
 
@@ -209,16 +237,26 @@ def move_boat(boat, action):
     return True
 
 
+def printQtable(Qtable):
+    for row in Qtable:
+        for cell in row:
+            print(cell.qvals, end=" ")
+        print()
+
+
 while True:
-    render_grid(environment_grid)
-    dock = False
-    """while not dock:
-        action = Qtable[boat.pos[0]][boat.pos[1]].qvals.index(max(Qtable[boat.pos[0]][boat.pos[1]].qvals))
-        print(action)
-        print(Qtable[boat.pos[0]][boat.pos[1]].qvals)
-        print(max(Qtable[boat.pos[0]][boat.pos[1]].qvals))
-        if not move_boat(boat, action):
-            dock = True"""
+    render_grid(environment_grid, Qtable)
+
+    if not thread.is_alive():
+        print("training over")
+        boat.pos = list(boat.reset_pos)
+        print(boat.pos)
+        """dock = False
+        while not dock:
+            action = Qtable[boat.pos[0]][boat.pos[1]].qvals.index(max(Qtable[boat.pos[0]][boat.pos[1]].qvals))
+            print(action)
+            if not move_boat(boat, action):
+                dock = True"""
 
     pg.display.update()
 
