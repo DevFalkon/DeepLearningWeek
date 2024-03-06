@@ -9,11 +9,8 @@ Features of the simulation:
 2. Show the graph of reward vs path per iteration
 """
 import json
-import time
-
 import pygame as pg
 import sys
-import random
 import q_learning
 import threading
 import numpy as np
@@ -27,12 +24,12 @@ HEIGHT = 700
 
 # Variable for the width and the height of the simulation inside the main window
 # Must be <= HEIGHT and WIDTH
-GRID_WIDTH = WIDTH-400
+GRID_WIDTH = WIDTH - 400
 GRID_HEIGHT = HEIGHT
 FPS = 1000
 
 # RGB values of colours
-white = (255,255,255)
+white = (255, 255, 255)
 sea_blue = (50, 152, 168)
 darker_blue = (50, 76, 168)
 
@@ -43,7 +40,6 @@ pg.display.set_caption("DeepLearningWeek")
 screen = pg.display.set_mode((WIDTH, HEIGHT))
 clock = pg.time.Clock()
 pg.font.init()
-
 
 my_font = pg.font.SysFont('Arial', 9)
 
@@ -59,8 +55,8 @@ class OceanEnvironment:
         self.current_row = row
         self.current_col = col
 
-        self.max_rows = no_row-1
-        self.max_cols = no_col-1
+        self.max_rows = no_row - 1
+        self.max_cols = no_col - 1
 
         self.color = 0
 
@@ -73,23 +69,23 @@ class OceanEnvironment:
         self.population_history = []
 
     def gradient_fish_generator(self):
-        dist_from_shore_y = abs(self.max_rows-self.current_row)
-        dist_from_shore_x = abs(self.max_cols-self.current_col)
+        dist_from_shore_y = abs(self.max_rows - self.current_row)
+        dist_from_shore_x = abs(self.max_cols - self.current_col)
 
-        diag_dist = pow(pow(dist_from_shore_x,2)+pow(dist_from_shore_y,2), 0.5)
-        max_dist = pow(pow(self.max_rows,2)+pow(self.max_cols,2), 0.5)
-        fish_pop = int((1000/max_dist)*diag_dist)
+        diag_dist = pow(pow(dist_from_shore_x, 2) + pow(dist_from_shore_y, 2), 0.5)
+        max_dist = pow(pow(self.max_rows, 2) + pow(self.max_cols, 2), 0.5)
+        fish_pop = int((255 / max_dist) * diag_dist)
         return fish_pop
 
     def random_fish_generator(self):
-        return np.random.randint(1, 20)
+        return np.random.randint(1, 100)
 
 
 # All the properties of the boat
 class Boat:
     def __init__(self, grid):
         # position is the grid coordinates of the boat
-        self.reset_pos = (len(grid)//2, len(grid)-1)
+        self.reset_pos = (len(grid) // 2, len(grid) - 1)
 
         self.pos = list(self.reset_pos)
 
@@ -104,7 +100,7 @@ class Boat:
         return False
 
     def move_down(self):
-        if self.pos[1] < len(self.grid)-1:
+        if self.pos[1] < len(self.grid) - 1:
             self.pos[1] += 1
             self.render()
             return True
@@ -118,7 +114,7 @@ class Boat:
         return False
 
     def move_right(self):
-        if self.pos[0] < len(self.grid)-1:
+        if self.pos[0] < len(self.grid) - 1:
             self.pos[0] += 1
             self.render()
             return True
@@ -128,11 +124,10 @@ class Boat:
         decline = 10
         self.grid[self.pos[0]][self.pos[1]].fish_population -= decline
 
-
     def render(self):
         cell_width = GRID_WIDTH / len(self.grid[0])
         cell_height = GRID_HEIGHT / len(self.grid)
-        rect = (cell_width*self.pos[0], cell_height*self.pos[1], cell_width, cell_height)
+        rect = (cell_width * self.pos[0], cell_height * self.pos[1], cell_width, cell_height)
         pg.draw.rect(screen, white, rect)
         pg.display.update(pg.Rect(rect))
 
@@ -147,12 +142,12 @@ def create_env(rows, columns, mode):
 
 
 def avg_fish_population(envGrid):
-    n = len(envGrid)*len(envGrid[0])
+    n = len(envGrid) * len(envGrid[0])
     pop = 0
     for row in envGrid:
         for cell in row:
             pop += cell.fish_population
-    return int(pop/n)
+    return int(pop / n)
 
 
 # Rendering the grid on screen
@@ -162,18 +157,18 @@ def render_grid(grid):
 
     no_rows = len(grid)
     no_cols = len(grid[0])
-    cell_width = GRID_WIDTH/no_cols
-    cell_height = GRID_HEIGHT/no_rows
+    cell_width = GRID_WIDTH / no_cols
+    cell_height = GRID_HEIGHT / no_rows
 
     for i in range(no_rows):
         for j in range(no_cols):
-            rect = cell_width*j, cell_height*i, cell_width, cell_height
+            rect = cell_width * j, cell_height * i, cell_width, cell_height
             if grid[i][j].color != 0:
                 pg.draw.rect(screen, grid[i][j].color, rect)
-            elif (abs(grid[i][j].fish_population-255))>255:
+            elif (abs(grid[i][j].fish_population - 255)) > 255:
                 pg.draw.rect(screen, (0, 0, 255), rect)
             else:
-                pg.draw.rect(screen, (0, 0, abs(grid[i][j].fish_population-255)), rect)
+                pg.draw.rect(screen, (0, 0, abs(grid[i][j].fish_population - 255)), rect)
 
     for row in grid:
         pg.draw.rect(screen, darker_blue, rect=(0, y_pos, GRID_WIDTH, 1))
@@ -186,7 +181,7 @@ def render_grid(grid):
     pg.draw.rect(screen, darker_blue, rect=(0, y_pos, GRID_WIDTH, 1))
     pg.draw.rect(screen, darker_blue, (x_pos, 0, 1, GRID_HEIGHT))
 
-    pg.display.update(pg.Rect(0, 0, GRID_WIDTH+1, GRID_HEIGHT+1))
+    pg.display.update(pg.Rect(0, 0, GRID_WIDTH + 1, GRID_HEIGHT + 1))
 
 
 def move_boat(boat, action):
@@ -239,7 +234,8 @@ def logistic_growth(initial_population):
     # Convert annual growth rate to monthly growth rate
     monthly_growth = (1 + r_annual) ** (1 / 12) - 1
 
-    population = max_population / (1 + ((monthly_growth - initial_population) / initial_population) * np.exp(-monthly_growth))
+    population = max_population / (
+                1 + ((monthly_growth - initial_population) / initial_population) * np.exp(-monthly_growth))
     print(population)
     return population
 
@@ -254,11 +250,11 @@ def update_population(env_grid):
 no_rows = 25
 no_cols = 25
 
-mode = 1
+mode = 0
 
 Qtable = create_qtable(no_rows, no_cols)
 environment_grid = create_env(no_rows, no_cols, mode)
-#load_table(Qtable, 'save.json')
+# load_table(Qtable, 'save.json')
 
 # Training parameters
 training_episodes = 200
@@ -274,7 +270,8 @@ decay_rate = 0.0005
 def train_model(boat_actor, env_grid):
     avg_population = avg_fish_population(environment_grid)
     thread = threading.Thread(target=q_learning.train,
-                              args=(training_episodes, decay_rate, max_steps, Qtable, tuple(env_grid), boat_actor, avg_population))
+                              args=(training_episodes, decay_rate, max_steps, Qtable, tuple(env_grid), boat_actor,
+                                    avg_population))
     thread.start()
     return thread
 
@@ -312,17 +309,18 @@ saved = False
 def render_gradient(top_x, top_y):
     for row in range(255):
         for col in range(255):
-            pg.draw.rect(screen, (col, row, 0), (top_x+col, top_y+row, 1,1))
+            pg.draw.rect(screen, (col, row, 0), (top_x + col, top_y + row, 1, 1))
 
 
 def render_boat_color(boat_ls):
-    top_x, top_y = GRID_WIDTH+20, 365
+    top_x, top_y = GRID_WIDTH + 20, 365
     for ind, boat_color in enumerate(boat_ls):
         pg.draw.rect(screen, boat_color, (top_x, top_y, 25, 25))
         top_y += 35
         if ind == 4:
             top_x += 150
             top_y = 365
+
 
 color_picker = rect.Rect(screen, GRID_WIDTH + 20, 20, 255, 255)
 render_gradient(GRID_WIDTH + 20, 20)
@@ -342,12 +340,12 @@ while True:
     render_grid(environment_grid)
     mouse_pos = pg.mouse.get_pos()
 
-    next_button = rect.Rect(screen, GRID_WIDTH+20, HEIGHT-70, WIDTH-GRID_WIDTH-40, 50)
-    add_boat = rect.Rect(screen, GRID_WIDTH+20, 295, WIDTH-GRID_WIDTH-40, 50)
-    confirm_button = rect.Rect(screen, GRID_WIDTH+20, HEIGHT-140, WIDTH-GRID_WIDTH-40, 50)
+    next_button = rect.Rect(screen, GRID_WIDTH + 20, HEIGHT - 70, WIDTH - GRID_WIDTH - 40, 50)
+    add_boat = rect.Rect(screen, GRID_WIDTH + 20, 295, WIDTH - GRID_WIDTH - 40, 50)
+    confirm_button = rect.Rect(screen, GRID_WIDTH + 20, HEIGHT - 140, WIDTH - GRID_WIDTH - 40, 50)
 
     if color_picker.rect_dist(mouse_pos):
-        p_color = (mouse_pos[0]-GRID_WIDTH-20, mouse_pos[1]-20, 0)
+        p_color = (mouse_pos[0] - GRID_WIDTH - 20, mouse_pos[1] - 20, 0)
         if pg.mouse.get_pressed()[0]:
             p_color_final = p_color
             final_color = True
@@ -356,7 +354,7 @@ while True:
 
     if final_color:
         p_color = p_color_final
-        if add_boat.rect_dist(mouse_pos) and pg.mouse.get_pressed()[0] and len(boat_ls)<10 and not boats_confirmed:
+        if add_boat.rect_dist(mouse_pos) and pg.mouse.get_pressed()[0] and len(boat_ls) < 10 and not boats_confirmed:
             boat_ls.append(p_color)
             final_color = False
 
@@ -379,16 +377,13 @@ while True:
         else:
             confirm_press = False
 
-
-    if not running and no_assigned<no_people:
-        print("training")
-        print(no_assigned)
+    if not running and no_assigned < no_people:
         thread = train_model(Boat(Qtable), environment_grid)
         running = True
         no_assigned += 1
     if cnt > 0:
         if running and not thread.is_alive():
-            update_environment(Qtable, environment_grid, boat_ls[no_assigned-1])
+            update_environment(Qtable, environment_grid, boat_ls[no_assigned - 1])
             Qtable = create_qtable(no_rows, no_cols)
             running = False
 

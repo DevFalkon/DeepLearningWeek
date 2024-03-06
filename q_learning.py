@@ -42,7 +42,7 @@ def take_step(boat, action, environment_grid, avg_population):
         return (fish_population/population_d)/255
 
 
-learning_rate = 0.9
+learning_rate = 0.5
 gamma = 0.95
 
 
