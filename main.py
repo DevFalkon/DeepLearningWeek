@@ -13,6 +13,7 @@ import pygame as pg
 import sys
 import random
 import q_learning
+import threading
 
 
 # Variables for the width and height of the simulation window
@@ -21,7 +22,7 @@ HEIGHT = 700
 
 # Variable for the width and the height of the simulation inside the main window
 # Must be <= HEIGHT and WIDTH
-GRID_WIDTH = WIDTH-200
+GRID_WIDTH = WIDTH
 GRID_HEIGHT = HEIGHT-100
 FPS = 100
 
@@ -45,11 +46,25 @@ class GridCell:
 
 
 class OceanEnvironment:
-    def __init__(self):
-        self.fish_population = random.randint(0, 255)
+    def __init__(self, row, col, no_row, no_col):
+        self.current_row = row
+        self.current_col = col
+
+        self.max_rows = no_row
+        self.max_cols = no_col
+
+        self.fish_population = self.fish_pop_generator()
         self.environment_val = 0
 
         self.population_history = []
+
+    def fish_pop_generator(self):
+        dist_from_shore_y = abs(self.max_rows-self.current_row)
+        dist_from_shore_x = abs(self.max_cols-self.current_col)
+
+        diag_dist = pow(pow(dist_from_shore_x,2)+pow(dist_from_shore_y,2), 0.5)
+        fish_pop = int((255/self.max_rows*pow(2,0.5))*diag_dist)
+        return fish_pop
 
 
 # All the properties of the boat
@@ -96,6 +111,8 @@ class Boat:
         self.grid[self.pos[0]][self.pos[1]].fish_population -= decline
 
     def dock(self):
+        if self.pos == list(self.reset_pos):
+            return False
         if self.pos[1] == len(self.grid[0])-1:
             return True
         return False
@@ -111,7 +128,7 @@ class Boat:
 # Creating an empty 2-D array
 def create_grid(rows, columns):
     qval_grid = [[GridCell() for j in range(columns)] for i in range(rows)]
-    environment_grid = [[OceanEnvironment() for j in range(columns)] for i in range(rows)]
+    environment_grid = [[OceanEnvironment(i, j, rows, columns) for j in range(columns)] for i in range(rows)]
     return qval_grid, environment_grid
 
 
@@ -168,17 +185,12 @@ max_steps = 99
 eval_seed = []
 
 # Exploration parameters
-max_epsilon = 1.0
-min_epsilon = 0.05
+
 decay_rate = 0.0005
 
-final_table = q_learning.train(training_episodes, min_epsilon, max_epsilon, decay_rate, max_steps, Qtable, tuple(environment_grid), boat, screen)
-for row in Qtable:
-    for cell in row:
-        for i in cell.qvals:
-            print(round(i, 2), end=" ")
-        print("", end=": ")
-    print()
+thread = threading.Thread(target=q_learning.train,
+                          args=(training_episodes, decay_rate, max_steps, Qtable, tuple(environment_grid), boat, screen))
+thread.start()
 
 
 def move_boat(boat, action):
@@ -199,8 +211,6 @@ def move_boat(boat, action):
 
 while True:
     render_grid(environment_grid)
-    boat = Boat(environment_grid)
-
     dock = False
     """while not dock:
         action = Qtable[boat.pos[0]][boat.pos[1]].qvals.index(max(Qtable[boat.pos[0]][boat.pos[1]].qvals))

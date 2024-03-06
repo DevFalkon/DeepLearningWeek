@@ -3,12 +3,13 @@ import pygame as pg
 import numpy as np
 import random
 
-population_d = 25
+population_d = 0.01
 
 # State space -> the simulation grid
 # Action space -> all the possible actions
 # State -> The current position of the boat in the environment
 # Values for action space: up -> 0, down -> 1, left -> 2, right -> 3, fish -> 4 and dock -> 5
+
 
 def epsilon_greedy_policy(Qtable, state, epsilon):
     random_int = random.uniform(0, 1)
@@ -22,33 +23,28 @@ def epsilon_greedy_policy(Qtable, state, epsilon):
 def take_step(boat, action, environment_grid):
     if action == 0:
         if boat.move_up():
-            return -3
-        else:
-            return -10
+            return -5
+        return -100
     elif action == 1:
         if boat.move_down():
             return -1
-        else:
-            return -10
+        return -100
     elif action == 2:
         if boat.move_left():
-            return -2
-        else:
-            return -10
+            return -1.5
+        return -100
     elif action == 3:
         if boat.move_right():
-            return -2
-        else:
-            return -10
+            return -1.5
+        return -100
     elif action == 4:
-        boat.fish()
-        fish_population = environment_grid[boat.pos[0]][boat.pos[1]].fish_population
+        fish_population = environment_grid[boat.pos[1]][boat.pos[0]].fish_population
         return fish_population/population_d
     else:
         if boat.dock():
-            return 1
+            return -1
         else:
-            return -3
+            return -100
 
 
 learning_rate = 0.7
@@ -97,20 +93,24 @@ def render_grid(grid, screen):
     pg.display.update(pg.Rect(0, 0, GRID_WIDTH+1, GRID_HEIGHT+1))
 
 
-def train(training_episodes, min_epsilon, max_epsilon, decay_rate, max_steps, Qtable, environment_grid, boat, screen):
+import copy
+
+
+def train(training_episodes, decay_rate, max_steps, Qtable, environment_grid, boat, screen):
+
+    max_epsilon = 1.0
+    min_epsilon = 0.05
 
     for episode in range(training_episodes):
 
         epsilon = min_epsilon + (max_epsilon - min_epsilon) * np.exp(-decay_rate * episode)
         # Reset the environment
         state = list(boat.reset_pos)
-        copy_env_grid = list(environment_grid)
+        copy_env_grid = copy.deepcopy(list(environment_grid))
         boat.pos = state
-        # render_grid(copy_env_grid, screen)
-        boat.render()
+        #render_grid(copy_env_grid, screen)
+        #boat.render()
 
-        step = 0
-        print(Qtable)
         # repeat
         for step in range(max_steps):
 
@@ -119,12 +119,12 @@ def train(training_episodes, min_epsilon, max_epsilon, decay_rate, max_steps, Qt
             reward = take_step(boat, action, copy_env_grid)
             new_state = boat.pos
 
-            state_val = Qtable[state[0]][state[1]].qvals
-            Qtable[state[0]][state[1]].qvals[action] = state_val[action] + learning_rate * (
-                        reward + gamma * max(Qtable[new_state[0]][new_state[1]].qvals) - state_val[action])
+            state_val = Qtable[state[1]][state[0]].qvals
+            Qtable[state[1]][state[0]].qvals[action] = state_val[action] + learning_rate * (
+                        reward + gamma * max(Qtable[new_state[1]][new_state[0]].qvals) - state_val[action])
 
             if action == 4:
-                copy_env_grid[state[0]][state[1]].fish_population -= 100
+                copy_env_grid[state[1]][state[0]].fish_population -= 100
 
             # If done, finish the episode
             if action == 5:
@@ -132,7 +132,5 @@ def train(training_episodes, min_epsilon, max_epsilon, decay_rate, max_steps, Qt
 
             # Our state is the new state
             state = new_state
-
-        #screen.fill((0,0,0))
 
     return Qtable
