@@ -1,5 +1,3 @@
-import time
-import pygame as pg
 import numpy as np
 import random
 
@@ -16,7 +14,7 @@ def epsilon_greedy_policy(Qtable, state, epsilon):
     if random_int > epsilon:
         action = Qtable[state[0]][state[1]].qvals.index(max(Qtable[state[0]][state[1]].qvals))
     else:
-        action = random.randint(0,5)
+        action = random.randint(0, 4)
     return action
 
 
@@ -42,11 +40,6 @@ def take_step(boat, action, environment_grid, avg_population):
         if fish_population < avg_population:
             return -1*fish_population/population_d
         return fish_population/population_d
-    else:
-        if boat.dock():
-            return -1
-        else:
-            return -100
 
 
 learning_rate = 0.7
@@ -56,7 +49,7 @@ gamma = 0.95
 import copy
 
 
-def train(training_episodes, decay_rate, max_steps, Qtable, environment_grid, boat, screen, avg_population):
+def train(training_episodes, decay_rate, max_steps, Qtable, environment_grid, boat, avg_population):
 
     max_epsilon = 1.0
     min_epsilon = 0.05
@@ -73,7 +66,6 @@ def train(training_episodes, decay_rate, max_steps, Qtable, environment_grid, bo
         for step in range(max_steps):
 
             action = epsilon_greedy_policy(Qtable, state, epsilon)
-
             reward = take_step(boat, action, copy_env_grid, avg_population)
             new_state = boat.pos
 
@@ -84,11 +76,5 @@ def train(training_episodes, decay_rate, max_steps, Qtable, environment_grid, bo
             if action == 4:
                 copy_env_grid[state[1]][state[0]].fish_population -= 100
 
-            # If done, finish the episode
-            if action == 5:
-                break
-
             # Our state is the new state
             state = new_state
-
-    return Qtable

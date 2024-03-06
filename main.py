@@ -17,13 +17,13 @@ import threading
 
 
 # Variables for the width and height of the simulation window
-WIDTH = 800
-HEIGHT = 800
+WIDTH = 1100
+HEIGHT = 700
 
 # Variable for the width and the height of the simulation inside the main window
 # Must be <= HEIGHT and WIDTH
-GRID_WIDTH = WIDTH
-GRID_HEIGHT = HEIGHT-100
+GRID_WIDTH = WIDTH-400
+GRID_HEIGHT = HEIGHT
 FPS = 100
 
 # RGB values of colours
@@ -42,7 +42,7 @@ clock = pg.time.Clock()
 # Each cell in a grid will have these attributes
 class GridCell:
     def __init__(self):
-        self.qvals = [0, 0, 0, 0, 0, 0]
+        self.qvals = [0, 0, 0, 0, 0]
 
 
 class OceanEnvironment:
@@ -52,6 +52,8 @@ class OceanEnvironment:
 
         self.max_rows = no_row-1
         self.max_cols = no_col-1
+
+        self.color = 0
 
         if mode == 0:
             self.fish_population = self.fish_pop_generator()
@@ -117,12 +119,6 @@ class Boat:
         decline = 10
         self.grid[self.pos[0]][self.pos[1]].fish_population -= decline
 
-    def dock(self):
-        if self.pos == list(self.reset_pos):
-            return False
-        if self.pos[1] == len(self.grid[0])-1:
-            return True
-        return False
 
     def render(self):
         cell_width = GRID_WIDTH / len(self.grid[0])
@@ -133,10 +129,12 @@ class Boat:
 
 
 # Creating 2-D array
-def create_grid(rows, columns, mode):
-    qval_grid = [[GridCell() for j in range(columns)] for i in range(rows)]
-    environment_grid = [[OceanEnvironment(i, j, rows, columns, mode) for j in range(columns)] for i in range(rows)]
-    return qval_grid, environment_grid
+def create_qtable(rows, columns):
+    return [[GridCell() for j in range(columns)] for i in range(rows)]
+
+
+def create_env(rows, columns, mode):
+    return [[OceanEnvironment(i, j, rows, columns, mode) for j in range(columns)] for i in range(rows)]
 
 
 def avg_fish_population(envGrid):
@@ -152,6 +150,7 @@ def avg_fish_population(envGrid):
 pg.font.init()
 my_font = pg.font.SysFont('Comic Sans MS', 9)
 
+
 # Rendering the grid on screen
 def render_grid(grid, Qtable):
     x_pos = 0
@@ -165,14 +164,12 @@ def render_grid(grid, Qtable):
     for i in range(no_rows):
         for j in range(no_cols):
             rect = cell_width*j, cell_height*i, cell_width, cell_height
-            pg.draw.rect(screen, (0, 0, abs(grid[i][j].fish_population-255)), rect)
-
-            qv = Qtable[i][j].qvals
-            mx = max(qv)
-            ind = qv.index(mx)
-            text_surface = my_font.render(f"{round(mx, 2)}, {ind}", True, (255, 255, 255))
-
-            screen.blit(text_surface, (cell_width*j,cell_height*i))
+            if grid[i][j].color != 0:
+                pg.draw.rect(screen, grid[i][j].color, rect)
+            elif (abs(grid[i][j].fish_population-255))>255:
+                pg.draw.rect(screen, (0, 0, 255), rect)
+            else:
+                pg.draw.rect(screen, (0, 0, abs(grid[i][j].fish_population-255)), rect)
 
     for row in grid:
         pg.draw.rect(screen, darker_blue, rect=(0, y_pos, GRID_WIDTH, 1))
@@ -199,9 +196,6 @@ def move_boat(boat, action):
         boat.move_right()
     elif action == 4:
         boat.fish()
-    else:
-        return False
-    return True
 
 
 def printQtable(Qtable):
@@ -245,7 +239,8 @@ no_cols = 25
 
 mode = 1
 
-Qtable, environment_grid = create_grid(no_rows, no_cols, mode)
+Qtable = create_qtable(no_rows, no_cols)
+environment_grid = create_env(no_rows, no_cols, mode)
 #load_table(Qtable, 'save.json')
 render_grid(environment_grid, Qtable)
 boat = Boat(environment_grid)
@@ -254,7 +249,7 @@ boat.render()
 reward = 0
 
 # Training parameters
-training_episodes = 1000
+training_episodes = 500
 
 
 # Evaluation parameters
@@ -269,22 +264,53 @@ eval_seed = []
 decay_rate = 0.0005
 
 
-def train_model(boat_actor):
+def train_model(boat_actor, env_grid):
     avg_population = avg_fish_population(environment_grid)
     thread = threading.Thread(target=q_learning.train,
-                              args=(training_episodes, decay_rate, max_steps, Qtable, tuple(environment_grid), boat_actor, screen, avg_population))
+                              args=(training_episodes, decay_rate, max_steps, Qtable, tuple(env_grid), boat_actor, avg_population))
     thread.start()
     return thread
 
 
+def update_environment(Qtable, env_grid):
+    sm_qvals = 0
+    n = 0
+
+    rand_color = (random.randint(0,255), random.randint(0,255), 0)
+    for row in Qtable:
+        for cell in row:
+            qv = cell.qvals
+            ind = qv.index(max(qv))
+            if ind == 4:
+                sm_qvals += qv[4]
+                n += 1
+
+    avg = sm_qvals/n
+    for row_no, row in enumerate(env_grid):
+        for cell_no, cell in enumerate(row):
+            qt_cell = Qtable[row_no][cell_no].qvals
+            ind = qt_cell.index(max(qt_cell))
+            if ind == 4 and qt_cell[ind] > avg*3.5 and cell.color == 0:
+                cell.fish_population -= 150
+                cell.color = rand_color
+
+
 saved = False
+no_people = 10
+no_assigned = 0
+running = False
+
 while True:
     render_grid(environment_grid, Qtable)
 
-    if not thread.is_alive() and not saved:
-        boat.pos = list(boat.reset_pos)
-        save_table(Qtable, 'save.json')
-        saved = True
+    if not running and no_assigned<no_people:
+        thread = train_model(Boat(Qtable), environment_grid)
+        running = True
+        no_assigned += 1
+    if running and not thread.is_alive():
+        update_environment(Qtable, environment_grid)
+        Qtable = create_qtable(no_rows, no_cols)
+        running = False
 
     pg.display.update()
 
