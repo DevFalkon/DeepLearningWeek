@@ -1,4 +1,5 @@
 import time
+import pygame as pg
 import numpy as np
 import random
 
@@ -28,7 +29,7 @@ def take_step(boat, action, environment_grid):
         if boat.move_down():
             return -1
         else:
-            return -1
+            return -10
     elif action == 2:
         if boat.move_left():
             return -2
@@ -54,16 +55,62 @@ learning_rate = 0.7
 gamma = 0.95
 
 
-def train(training_episodes, min_epsilon, max_epsilon, decay_rate, max_steps, Qtable, environment_grid, boat):
+def render_grid(grid, screen):
+    WIDTH = 700
+    HEIGHT = 700
+
+    # Variable for the width and the height of the simulation inside the main window
+    # Must be <= HEIGHT and WIDTH
+    GRID_WIDTH = WIDTH - 200
+    GRID_HEIGHT = HEIGHT - 100
+    white = (255, 255, 255)
+    sea_blue = (50, 152, 168)
+    darker_blue = (50, 76, 168)
+    x_pos = 0
+    y_pos = 0
+
+    no_rows = len(grid)
+    no_cols = len(grid[0])
+    cell_width = GRID_WIDTH/no_cols
+    cell_height = GRID_HEIGHT/no_rows
+
+    for i in range(no_rows):
+        for j in range(no_cols):
+            rect = cell_width*j, cell_height*i, cell_width, cell_height
+            if abs(grid[i][j].fish_population-255) > 255:
+                pg.draw.rect(screen, (0, 0, 150), rect)
+            else:
+                pg.draw.rect(screen, (0, 0, abs(grid[i][j].fish_population-255)), rect)
+
+    for row in grid:
+        pg.draw.rect(screen, darker_blue, rect=(0, y_pos, GRID_WIDTH, 1))
+        y_pos += cell_height
+
+    for column in grid[0]:
+        pg.draw.rect(screen, darker_blue, (x_pos, 0, 1, GRID_HEIGHT))
+        x_pos += cell_width
+
+
+    pg.draw.rect(screen, darker_blue, rect= (0, y_pos, GRID_WIDTH, 1))
+    pg.draw.rect(screen, darker_blue, (x_pos, 0, 1, GRID_HEIGHT))
+
+    pg.display.update(pg.Rect(0, 0, GRID_WIDTH+1, GRID_HEIGHT+1))
+
+
+def train(training_episodes, min_epsilon, max_epsilon, decay_rate, max_steps, Qtable, environment_grid, boat, screen):
 
     for episode in range(training_episodes):
 
         epsilon = min_epsilon + (max_epsilon - min_epsilon) * np.exp(-decay_rate * episode)
         # Reset the environment
-        state = boat.reset_pos
-        step = 0
-        copy_env_grid = environment_grid.copy()
+        state = list(boat.reset_pos)
+        copy_env_grid = list(environment_grid)
+        boat.pos = state
+        # render_grid(copy_env_grid, screen)
+        boat.render()
 
+        step = 0
+        print(Qtable)
         # repeat
         for step in range(max_steps):
 
@@ -85,5 +132,7 @@ def train(training_episodes, min_epsilon, max_epsilon, decay_rate, max_steps, Qt
 
             # Our state is the new state
             state = new_state
+
+        #screen.fill((0,0,0))
 
     return Qtable

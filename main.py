@@ -8,13 +8,9 @@ Features of the simulation:
 1. Map the best fishing path for each day
 2. Show the graph of reward vs path per iteration
 """
-import copy
-import random
-import time
 
 import pygame as pg
 import sys
-import numpy as np
 import random
 import q_learning
 
@@ -60,9 +56,9 @@ class OceanEnvironment:
 class Boat:
     def __init__(self, grid):
         # position is the grid coordinates of the boat
-        self.reset_pos = [0, len(grid)-1]
+        self.reset_pos = (0, len(grid)-1)
 
-        self.pos = self.reset_pos
+        self.pos = list(self.reset_pos)
 
         self.fuel_used = 0
         self.grid = grid
@@ -145,7 +141,6 @@ def render_grid(grid):
         pg.draw.rect(screen, darker_blue, (x_pos, 0, 1, GRID_HEIGHT))
         x_pos += cell_width
 
-
     pg.draw.rect(screen, darker_blue, rect=(0, y_pos, GRID_WIDTH, 1))
     pg.draw.rect(screen, darker_blue, (x_pos, 0, 1, GRID_HEIGHT))
 
@@ -154,14 +149,12 @@ def render_grid(grid):
 
 no_rows = 25
 no_cols = 25
-qval_grid, environment_grid = create_grid(no_rows, no_cols)
+Qtable, environment_grid = create_grid(no_rows, no_cols)
 render_grid(environment_grid)
 boat = Boat(environment_grid)
 boat.render()
 # Reward for Reinforced learning
 reward = 0
-
-Qtable = qval_grid.copy()
 
 # Training parameters
 training_episodes = 10000
@@ -179,12 +172,12 @@ max_epsilon = 1.0
 min_epsilon = 0.05
 decay_rate = 0.0005
 
-final_table = q_learning.train(training_episodes, min_epsilon, max_epsilon, decay_rate, max_steps, Qtable, environment_grid, boat)
-for row in final_table:
+final_table = q_learning.train(training_episodes, min_epsilon, max_epsilon, decay_rate, max_steps, Qtable, tuple(environment_grid), boat, screen)
+for row in Qtable:
     for cell in row:
         for i in cell.qvals:
             print(round(i, 2), end=" ")
-        print("", end=":")
+        print("", end=": ")
     print()
 
 
