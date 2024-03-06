@@ -18,81 +18,72 @@ def epsilon_greedy_policy(Qtable, state, epsilon):
     return action
 
 
-def take_step(boat, action, Qtable):
-    reward = 0
+def take_step(boat, action, environment_grid):
     if action == 0:
-        possible = boat.move_up()
-        if possible:
-            reward = -3
+        if boat.move_up():
+            return -3
         else:
-            reward -= 100
+            return -10
     elif action == 1:
-        possible = boat.move_down()
-        if possible:
-            reward = -3
+        if boat.move_down():
+            return -1
         else:
-            reward -= 100
+            return -1
     elif action == 2:
-        possible = boat.move_left()
-        if possible:
-            reward = -3
+        if boat.move_left():
+            return -2
         else:
-            reward -= 100
+            return -10
     elif action == 3:
-        possible = boat.move_right()
-        if possible:
-            reward = -3
+        if boat.move_right():
+            return -2
         else:
-            reward -= 100
+            return -10
     elif action == 4:
         boat.fish()
-        fish_population = Qtable[boat.pos[0]][boat.pos[1]].fish_population
-        reward = fish_population/population_d
+        fish_population = environment_grid[boat.pos[0]][boat.pos[1]].fish_population
+        return fish_population/population_d
     else:
-        boat.dock()
-        if boat.pos[1] == boat.reset_pos[1]:
-            reward = 1
+        if boat.dock():
+            return 1
         else:
-            reward = -3
-
-    return reward
+            return -3
 
 
 learning_rate = 0.7
 gamma = 0.95
 
 
-def train(training_episodes, min_epsilon, max_epsilon, decay_rate, max_steps, Qtable, boat):
+def train(training_episodes, min_epsilon, max_epsilon, decay_rate, max_steps, Qtable, environment_grid, boat):
+
     for episode in range(training_episodes):
 
         epsilon = min_epsilon + (max_epsilon - min_epsilon) * np.exp(-decay_rate * episode)
         # Reset the environment
         state = boat.reset_pos
         step = 0
-        done = False
+        copy_env_grid = environment_grid.copy()
 
         # repeat
         for step in range(max_steps):
 
             action = epsilon_greedy_policy(Qtable, state, epsilon)
 
-            reward = take_step(boat, action, Qtable)
+            reward = take_step(boat, action, copy_env_grid)
             new_state = boat.pos
-
-            print(state)
 
             state_val = Qtable[state[0]][state[1]].qvals
             Qtable[state[0]][state[1]].qvals[action] = state_val[action] + learning_rate * (
                         reward + gamma * max(Qtable[new_state[0]][new_state[1]].qvals) - state_val[action])
 
             if action == 4:
-                Qtable[state[0]][state[1]].fish_population -= 100
-
+                copy_env_grid[state[0]][state[1]].fish_population -= 100
 
             # If done, finish the episode
-            if done:
+            if action == 5:
                 break
 
             # Our state is the new state
             state = new_state
+
     return Qtable
