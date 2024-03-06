@@ -14,7 +14,9 @@ import sys
 import random
 import q_learning
 import threading
+import numpy as np
 
+np.random.seed(42)  # For reproducible results
 
 # Variables for the width and height of the simulation window
 WIDTH = 1100
@@ -24,7 +26,7 @@ HEIGHT = 700
 # Must be <= HEIGHT and WIDTH
 GRID_WIDTH = WIDTH-400
 GRID_HEIGHT = HEIGHT
-FPS = 100
+FPS = 1000
 
 # RGB values of colours
 white = (255,255,255)
@@ -60,14 +62,14 @@ class OceanEnvironment:
         self.color = 0
 
         if mode == 0:
-            self.fish_population = self.fish_pop_generator()
+            self.fish_population = self.gradient_fish_generator()
         else:
-            self.fish_population = self.random_pop_generator()
+            self.fish_population = self.random_fish_generator()
         self.environment_val = 0
 
         self.population_history = []
 
-    def fish_pop_generator(self):
+    def gradient_fish_generator(self):
         dist_from_shore_y = abs(self.max_rows-self.current_row)
         dist_from_shore_x = abs(self.max_cols-self.current_col)
 
@@ -76,8 +78,8 @@ class OceanEnvironment:
         fish_pop = int((255/max_dist)*diag_dist)
         return fish_pop
 
-    def random_pop_generator(self):
-        return random.randint(0,255)
+    def random_fish_generator(self):
+        return np.random.randint(1000, 255000)
 
 
 # All the properties of the boat
@@ -198,13 +200,6 @@ def move_boat(boat, action):
         boat.fish()
 
 
-def printQtable(Qtable):
-    for row in Qtable:
-        for cell in row:
-            print(cell.qvals, end=" ")
-        print()
-
-
 def save_table(Qtable, file_name):
     saved_table = []
     for row in Qtable:
@@ -234,30 +229,35 @@ def load_table(Qtable, file_name):
             ind += 1
 
 
+# Logistic growth function
+def logistic_growth(initial_population, month):
+    max_population = 1000000  # Carrying capacity -> the max limit of fish per cell
+    r_annual = 0.1  # Annual intrinsic rate of increase
+
+    # Convert annual growth rate to monthly growth rate
+    monthly_growth = (1 + r_annual) ** (1 / 12) - 1
+
+    return max_population / (1 + ((monthly_growth - initial_population) / initial_population) * np.exp(-monthly_growth * month))
+
+
+def update_population(env_grid):
+    pass
+
+
 no_rows = 25
 no_cols = 25
 
-mode = 1
+mode = 0
 
 Qtable = create_qtable(no_rows, no_cols)
 environment_grid = create_env(no_rows, no_cols, mode)
 #load_table(Qtable, 'save.json')
-render_grid(environment_grid)
-boat = Boat(environment_grid)
-boat.render()
-# Reward for Reinforced learning
-reward = 0
 
 # Training parameters
-training_episodes = 500
-
-
-# Evaluation parameters
-n_eval_episodes = 100
+training_episodes = 150
 
 # Environment parameters
-max_steps = 99
-eval_seed = []
+max_steps = 110
 
 # Exploration parameters
 
@@ -282,17 +282,23 @@ def update_environment(Qtable, env_grid):
             qv = cell.qvals
             ind = qv.index(max(qv))
             if ind == 4:
+                val = qv[4]
                 sm_qvals += qv[4]
                 n += 1
 
-    avg = sm_qvals/n
+    avg = sm_qvals / n
+
+    cnt = 9
     for row_no, row in enumerate(env_grid):
         for cell_no, cell in enumerate(row):
             qt_cell = Qtable[row_no][cell_no].qvals
             ind = qt_cell.index(max(qt_cell))
-            if ind == 4 and qt_cell[ind] > avg*3.5 and cell.color == 0:
-                cell.fish_population -= 150
+            if ind == 4 and qt_cell[ind] > avg and env_grid[row_no][cell_no].color == 0:
+                cell.fish_population -= 100
                 cell.color = rand_color
+                cnt += 1
+            if cnt > 9:
+                return
 
 
 saved = False

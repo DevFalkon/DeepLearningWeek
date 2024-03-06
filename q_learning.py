@@ -1,12 +1,11 @@
 import numpy as np
 import random
-
-population_d = 70
+import copy
 
 # State space -> the simulation grid
 # Action space -> all the possible actions
 # State -> The current position of the boat in the environment
-# Values for action space: up -> 0, down -> 1, left -> 2, right -> 3, fish -> 4 and dock -> 5
+# Values for action space: up -> 0; down -> 1; left -> 2; right -> 3; fish -> 4
 
 
 def epsilon_greedy_policy(Qtable, state, epsilon):
@@ -19,34 +18,32 @@ def epsilon_greedy_policy(Qtable, state, epsilon):
 
 
 def take_step(boat, action, environment_grid, avg_population):
+    population_d = 70
     if action == 0:
         if boat.move_up():
-            return -5
+            return -2
         return -100
     elif action == 1:
         if boat.move_down():
-            return -1
+            return -1.5
         return -100
     elif action == 2:
         if boat.move_left():
-            return -1.5
+            return -1
         return -100
     elif action == 3:
         if boat.move_right():
-            return -1.5
+            return -1
         return -100
     elif action == 4:
         fish_population = environment_grid[boat.pos[1]][boat.pos[0]].fish_population
         if fish_population < avg_population:
-            return -1*fish_population/population_d
-        return fish_population/population_d
+            return -1*fish_population/(population_d*255)
+        return (fish_population/population_d)/255
 
 
-learning_rate = 0.7
+learning_rate = 0.9
 gamma = 0.95
-
-
-import copy
 
 
 def train(training_episodes, decay_rate, max_steps, Qtable, environment_grid, boat, avg_population):
