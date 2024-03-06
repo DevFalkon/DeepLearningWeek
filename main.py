@@ -37,6 +37,10 @@ pg.display.init()
 pg.display.set_caption("DeepLearningWeek")
 screen = pg.display.set_mode((WIDTH, HEIGHT))
 clock = pg.time.Clock()
+pg.font.init()
+
+
+my_font = pg.font.SysFont('Arial', 9)
 
 
 # Each cell in a grid will have these attributes
@@ -147,12 +151,8 @@ def avg_fish_population(envGrid):
     return int(pop/n)
 
 
-pg.font.init()
-my_font = pg.font.SysFont('Comic Sans MS', 9)
-
-
 # Rendering the grid on screen
-def render_grid(grid, Qtable):
+def render_grid(grid):
     x_pos = 0
     y_pos = 0
 
@@ -242,7 +242,7 @@ mode = 1
 Qtable = create_qtable(no_rows, no_cols)
 environment_grid = create_env(no_rows, no_cols, mode)
 #load_table(Qtable, 'save.json')
-render_grid(environment_grid, Qtable)
+render_grid(environment_grid)
 boat = Boat(environment_grid)
 boat.render()
 # Reward for Reinforced learning
@@ -301,7 +301,7 @@ no_assigned = 0
 running = False
 
 while True:
-    render_grid(environment_grid, Qtable)
+    render_grid(environment_grid)
 
     if not running and no_assigned<no_people:
         thread = train_model(Boat(Qtable), environment_grid)
