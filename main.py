@@ -8,7 +8,6 @@ Features of the simulation:
 1. Map the best fishing path for each day
 2. Show the graph of reward vs path per iteration
 """
-import json
 import pygame as pg
 import sys
 import q_learning
@@ -90,8 +89,6 @@ class Boat:
         self.reset_pos = (len(grid) // 2, len(grid) - 1)
 
         self.pos = list(self.reset_pos)
-
-        self.fuel_used = 0
         self.grid = grid
 
     def move_up(self):
