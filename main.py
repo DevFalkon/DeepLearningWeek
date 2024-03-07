@@ -186,48 +186,6 @@ def render_grid(grid):
     pg.display.update(pg.Rect(0, 0, GRID_WIDTH + 1, GRID_HEIGHT + 1))
 
 
-def move_boat(boat, action):
-    if action == 0:
-        boat.move_up()
-    elif action == 1:
-        boat.move_down()
-    elif action == 2:
-        boat.move_left()
-    elif action == 3:
-        boat.move_right()
-    elif action == 4:
-        boat.fish()
-
-
-def save_table(Qtable, file_name):
-    saved_table = []
-    for row in Qtable:
-        for cell in row:
-            saved_table.append(cell.qvals)
-    with open(file_name, 'w') as file:
-        json.dump(saved_table, file)
-
-
-def save_env(env_grid, file_name):
-    saved_table = []
-    for row in Qtable:
-        for cell in row:
-            saved_table.append(cell.qvals)
-    with open(file_name, 'w') as file:
-        json.dump(saved_table, file)
-
-
-def load_table(Qtable, file_name):
-    with open(file_name, 'r') as file:
-        qv = json.load(file)
-
-    ind = 0
-    for row in Qtable:
-        for cell in row:
-            cell.qvals = qv[ind]
-            ind += 1
-
-
 # Logistic growth function
 def logistic_growth(initial_population):
     max_population = 255  # Carrying capacity -> the max limit of fish per cell
@@ -256,7 +214,6 @@ mode = 0
 
 Qtable = create_qtable(no_rows, no_cols)
 environment_grid = create_env(no_rows, no_cols, mode)
-# load_table(Qtable, 'save.json')
 
 # Training parameters
 training_episodes = 100
@@ -265,7 +222,6 @@ training_episodes = 100
 max_steps = 110
 
 # Exploration parameters
-
 decay_rate = 0.0005
 
 
@@ -303,9 +259,6 @@ def update_environment(Qtable, env_grid, color):
                 cnt += 1
             if cnt > 9:
                 return
-
-
-saved = False
 
 
 def render_gradient(top_x, top_y):
