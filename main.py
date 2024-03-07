@@ -41,7 +41,7 @@ screen = pg.display.set_mode((WIDTH, HEIGHT))
 clock = pg.time.Clock()
 pg.font.init()
 
-my_font = pg.font.SysFont('Arial', 9)
+font = pg.font.SysFont('Arial', 20)
 
 
 # Each cell in a grid will have these attributes
@@ -62,6 +62,8 @@ class OceanEnvironment:
 
         if mode == 0:
             self.fish_population = self.gradient_fish_generator()
+        elif mode == 1:
+            self.fish_population = self.another_grad_gen()
         else:
             self.fish_population = self.random_fish_generator()
         self.environment_val = 0
@@ -75,6 +77,19 @@ class OceanEnvironment:
         diag_dist = pow(pow(dist_from_shore_x, 2) + pow(dist_from_shore_y, 2), 0.5)
         max_dist = pow(pow(self.max_rows, 2) + pow(self.max_cols, 2), 0.5)
         fish_pop = int((255 / max_dist) * diag_dist)
+        if fish_pop == 0:
+            return 1
+        return fish_pop
+
+    def another_grad_gen(self):
+        centre_x = self.max_cols // 2
+        centre_y = self.max_rows // 2
+        dist_from_centre_y = abs(self.current_row - centre_y)
+        dist_from_centre_x = abs(self.current_row - centre_x)
+
+        dist_from_centre = pow(pow(dist_from_centre_x, 2) + pow(dist_from_centre_y, 2), 0.5)
+        max_dist = pow(pow(self.max_rows - centre_y, 2) + pow(self.max_cols - centre_x, 2), 0.5)
+        fish_pop = int((255 / max_dist) * dist_from_centre)
         if fish_pop == 0:
             return 1
         return fish_pop
@@ -254,7 +269,7 @@ def update_population(env_grid):
 no_rows = 25
 no_cols = 25
 
-mode = 1
+mode = 0
 
 Qtable = create_qtable(no_rows, no_cols)
 environment_grid = create_env(no_rows, no_cols, mode)
@@ -341,8 +356,27 @@ confirm_press = False
 boats_confirmed = False
 
 next_button = rect.Rect(screen, GRID_WIDTH + 20, HEIGHT - 70, WIDTH - GRID_WIDTH - 40, 50)
+next_text = "Next month"
+next_text = font.render(next_text, True, (0, 0, 0))
+nextRect = next_text.get_rect()
+nextWidth = next_text.get_width()
+nextHeight = next_text.get_height()
+screen.blit(next_text, dest=((GRID_WIDTH+20)+((WIDTH-GRID_WIDTH-40)//2-nextWidth//2), ((HEIGHT-70)+(50//2)-nextHeight//2)))
+
 add_boat = rect.Rect(screen, GRID_WIDTH + 20, 295, WIDTH - GRID_WIDTH - 40, 50)
+add_text = "Add boat for simulation"
+add_text = font.render(add_text, True, (0, 0, 0))
+addRect = add_text.get_rect()
+addWidth = add_text.get_width()
+addHeight = add_text.get_height()
+screen.blit(add_text, dest=((GRID_WIDTH+20)+((WIDTH-GRID_WIDTH-40)//2-addWidth//2), ((295)+(50//2)-addHeight//2)))
+
 confirm_button = rect.Rect(screen, GRID_WIDTH + 20, HEIGHT - 140, WIDTH - GRID_WIDTH - 40, 50)
+confirm_text = "Confirm and run simulation"
+confirm_text = font.render(confirm_text, True, (0,0,0))
+confirmWidth = confirm_text.get_width()
+confirmHeight = confirm_text.get_height()
+screen.blit(confirm_text, dest=((GRID_WIDTH+20)+((WIDTH-GRID_WIDTH-40)//2-confirmWidth//2), ((HEIGHT - 140)+(50//2)-confirmHeight//2)))
 
 while True:
     render_grid(environment_grid)
