@@ -26,7 +26,7 @@ HEIGHT = 700
 # Must be <= HEIGHT and WIDTH
 GRID_WIDTH = WIDTH - 400
 GRID_HEIGHT = HEIGHT
-FPS = 1000
+FPS = 100
 
 # RGB values of colours
 white = (255, 255, 255)
@@ -62,8 +62,6 @@ class OceanEnvironment:
 
         if mode == 0:
             self.fish_population = self.gradient_fish_generator()
-        elif mode == 1:
-            self.fish_population = self.another_grad_gen()
         else:
             self.fish_population = self.random_fish_generator()
         self.environment_val = 0
@@ -77,19 +75,6 @@ class OceanEnvironment:
         diag_dist = pow(pow(dist_from_shore_x, 2) + pow(dist_from_shore_y, 2), 0.5)
         max_dist = pow(pow(self.max_rows, 2) + pow(self.max_cols, 2), 0.5)
         fish_pop = int((255 / max_dist) * diag_dist)
-        if fish_pop == 0:
-            return 1
-        return fish_pop
-
-    def another_grad_gen(self):
-        centre_x = self.max_cols // 2
-        centre_y = self.max_rows // 2
-        dist_from_centre_y = abs(self.current_row - centre_y)
-        dist_from_centre_x = abs(self.current_row - centre_x)
-
-        dist_from_centre = pow(pow(dist_from_centre_x, 2) + pow(dist_from_centre_y, 2), 0.5)
-        max_dist = pow(pow(self.max_rows - centre_y, 2) + pow(self.max_cols - centre_x, 2), 0.5)
-        fish_pop = int((255 / max_dist) * dist_from_centre)
         if fish_pop == 0:
             return 1
         return fish_pop
@@ -246,14 +231,13 @@ def load_table(Qtable, file_name):
 # Logistic growth function
 def logistic_growth(initial_population):
     max_population = 255  # Carrying capacity -> the max limit of fish per cell
-    r_annual = 0.1  # Annual intrinsic rate of increase
-
-    # Convert annual growth rate to monthly growth rate
-    monthly_growth = ((1 + r_annual) ** (1 / 12)) - 1
-
-    population = max_population / (
-                3.1+((monthly_growth - initial_population) / initial_population) * np.exp(-monthly_growth*2))
-    return population
+    inst_natural_mortality_rate = 0.99
+    fertility = 1.43
+    survival_rate = 1
+    offsprings_produced = ((np.exp(-inst_natural_mortality_rate)+fertility)/(10-survival_rate))*initial_population
+    if offsprings_produced+initial_population >= max_population:
+        return max_population*(1-survival_rate/10)
+    return offsprings_produced+(initial_population*(1-survival_rate/10))
 
 
 def update_population(env_grid):
@@ -261,7 +245,6 @@ def update_population(env_grid):
         for cell in row:
             if cell.fish_population>0:
                 cell.fish_population = logistic_growth(cell.fish_population)
-                print(cell.fish_population)
             cell.color = 0
     return env_grid
 
@@ -276,7 +259,7 @@ environment_grid = create_env(no_rows, no_cols, mode)
 # load_table(Qtable, 'save.json')
 
 # Training parameters
-training_episodes = 200
+training_episodes = 100
 
 # Environment parameters
 max_steps = 110
